@@ -7,7 +7,7 @@ This project is currently in active development. The foundational networking arc
 * **Master-Worker Topology:** Core node architecture implemented via the `gorilla/websocket` package.
 * **Connection Handshake:** Master node successfully hosts the WebSocket server, while Worker nodes can dynamically connect, register their readiness status, and stand by for task delegation.
 
-## Development Roadmap (Summer 2027)
+## Development Roadmap 
 Upcoming infrastructure upgrades to reach production readiness:
 - [ ] **Dynamic Load Balancing:** Implement a round-robin algorithm on the Master Node to evenly distribute inference workloads across all active workers.
 - [ ] **Task Queues:** Add an in-memory queue to hold pending tasks if all workers are currently busy.
