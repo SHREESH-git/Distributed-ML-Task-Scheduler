@@ -1,7 +1,7 @@
-# MVP Binaries (root level only to avoid ignoring future packages/directories)
-/master
-/worker
+# MVP Binaries
+master
 *.exe
+worker
 
 # OS files
 .DS_Store
@@ -9,6 +9,3 @@
 # PowerShell scripts
 *.ps1
 *.ps2
-
-# Exceptions
-!/run.ps1
