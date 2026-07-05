@@ -4,50 +4,48 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func main() {
-	// 1. Define the MasterNode URL
-	u := url.URL{
-		Scheme: "ws",
-		Host:   "localhost:8080",
-		Path:   "/ws",
-	}
-	fmt.Printf("Connecting to Master at %s\n", u.String()) // Print the URL string -> ws://localhost:8080/ws
+type Job struct {
+	ID      string `json:"id"`
+	Payload string `json:"payload"`
+}
 
-	// 2. Open a websocket connection to localhost:8080/ws
+func main() {
+	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/ws"}
+	fmt.Printf("Connecting to Master at %s\n", u.String())
+
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("Dial Error: ", err)
 	}
 	defer conn.Close()
 
-	// 3. Send readiness message to the Master
-	readyMessage := "I am ready for a task"
-	err = conn.WriteMessage(websocket.TextMessage, []byte(readyMessage))
-	if err != nil {
-		log.Fatal("Write error:", err)
-	}
-	fmt.Println("Sent:", readyMessage)
+	fmt.Println("Connected to Master. Standing by for tasks...")
 
-	// 4. Wait for Master's response
-	_, message, err := conn.ReadMessage()
-	if err != nil {
-		log.Fatal("Read error:", err)
-	}
-	fmt.Printf("Received: %s\n", message)
-	fmt.Println("Connected to Master. Standing by...")
+	for {
+		var job Job
+		err := conn.ReadJSON(&job)
+		if err != nil {
+			log.Println("Disconnected from Master:", err)
+			break
+		}
 
-	// Dialer converts ws://localhost:8080/ws into
-	/*
-		GET /ws HTTP/1.1
-		Host: localhost:8080
-		Connection: Upgrade
-		Upgrade: websocket
-		Sec-WebSocket-Version: 13
-		Sec-WebSocket-Key: xyz123
-	*/
-	// and send it to Master Node
+		fmt.Printf("--> Received %s: %s\n", job.ID, job.Payload)
+
+		// Simulate heavy ML workload bypassing GIL equivalent in Go
+		fmt.Printf("--> Processing %s..\n", job.ID)
+		time.Sleep(30 * time.Second)
+		fmt.Printf("--> Finished %s!\n", job.ID)
+
+		// Tell Master we are ready for the next job
+		err = conn.WriteMessage(websocket.TextMessage, []byte("DONE"))
+		if err != nil {
+			log.Println("Write error:", err)
+			break
+		}
+	}
 }
