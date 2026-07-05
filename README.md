@@ -12,45 +12,64 @@ A lightweight, distributed task scheduling system built in Go.
 
 ```mermaid
 flowchart LR
-    %% Custom Styles for a clean, professional look
+    %% Custom Styles
     classDef master fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
     classDef worker fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
     classDef queue fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000;
     classDef client fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000;
-    classDef fault fill:#ffebee,stroke:#c62828,stroke-width:2px,stroke-dasharray: 5 5,color:#000;
+    classDef fault fill:#ffebee,stroke:#c62828,stroke-width:2px,stroke-dasharray:5 5,color:#000;
+
 
     Client([Client / API Request]):::client -->|"HTTP POST /submit"| JobQueue
 
+
     subgraph MasterNode["Master Node (Load Balancer & State)"]
         direction TB
+
         JobQueue[("Job Queue<br/>(Go Channel)")]:::queue
+
         Dispatcher(("Round-Robin<br/>Dispatcher")):::master
+
         Registry[("Worker Registry<br/>(RWMutex Map)")]:::master
+
         Ledger[("Active Jobs Ledger<br/>(State Tracking)")]:::master
 
+
         JobQueue ==>|"1. Pull Task"| Dispatcher
+
         Registry -.->|"2. Check Idle/Busy"| Dispatcher
+
         Dispatcher -->|"3. Log Assignment"| Ledger
     end
 
+
     subgraph WorkerCluster["Worker Node Cluster"]
         direction TB
-        W_Idle["Worker Node 1<br/>[Status: IDLE]"]:::worker
-        W_Busy["Worker Node 2<br/>[Status: BUSY]"]:::worker
-        W_Crash["Worker Node 3<br/>[CRASHED]"]:::fault
+
+        W_Idle["Worker Node 1<br/>Status: IDLE"]:::worker
+
+        W_Busy["Worker Node 2<br/>Status: BUSY"]:::worker
+
+        W_Crash["Worker Node 3<br/>CRASHED"]:::fault
     end
 
-    %% Outbound Dispatching
-    Dispatcher ===>"4. WS Dispatch JSON"===> W_Idle
 
-    %% Inbound Acknowledgments (Happy Path)
-    W_Busy -.->|"5. WS 'DONE' Ack"| Registry
+    %% Dispatch
+    Dispatcher ==>|"4. WebSocket Dispatch JSON"| W_Idle
+
+
+    %% Completion Flow
+    W_Busy -.->|"5. WebSocket DONE Ack"| Registry
+
     Registry -.->|"6. Clear Ledger Entry"| Ledger
 
-    %% Fault Tolerance Loop (Edge Case)
-    W_Crash -.-x|"7. WebSocket Drops"| Registry
-    Registry --"8. Fetch Orphaned Job"--> Ledger
-    Ledger =="9. Re-queue Failed Job"==> JobQueue
+
+    %% Fault Recovery Flow
+    W_Crash -.->|"7. WebSocket Drops"| Registry
+
+    Registry -->|"8. Fetch Orphaned Job"| Ledger
+
+    Ledger ==>|"9. Requeue Failed Job"| JobQueue
 ```
 
 ## How to Run Locally
