@@ -96,7 +96,7 @@ go run worker.go
 **3. Submit a Job:**
 In another terminal window, submit a job using `curl`:
 ```bash
-curl http://localhost:8080/submit
+curl -X POST http://localhost:8080/submit
 ```
 
 ## Demo & Proof of Execution
